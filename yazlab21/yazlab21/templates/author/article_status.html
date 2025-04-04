@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Makale Durum Sorgulama - E-Makale Sistemi</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (İkonlar için) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff !important;
+        }
+        .nav-link {
+            color: #fff !important;
+            transition: 0.3s;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .status-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .status-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        .status-waiting {
+            color: #ffc107;
+        }
+        .status-processing {
+            color: #007bff;
+        }
+        .status-completed {
+            color: #28a745;
+        }
+        .status-rejected {
+            color: #dc3545;
+        }
+        .status-container {
+            display: none;
+            margin-top: 30px;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .timeline {
+            position: relative;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+        .timeline::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            background-color: #e9ecef;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            margin-left: -3px;
+        }
+        .timeline-item {
+            padding: 10px 40px;
+            position: relative;
+            width: 50%;
+            left: 0;
+        }
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            right: -10px;
+            top: 15px;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        .timeline-item.waiting::after {
+            background-color: #ffc107;
+        }
+        .timeline-item.processing::after {
+            background-color: #007bff;
+        }
+        .timeline-item.completed::after {
+            background-color: #28a745;
+        }
+        .timeline-item.rejected::after {
+            background-color: #dc3545;
+        }
+        .timeline-content {
+            padding: 20px;
+            background-color: white;
+            position: relative;
+            border-radius: 6px;
+            box-shadow: 0 0 0 3px #f5f5f5;
+        }
+        .user-email {
+            font-size: 14px;
+            color: white;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .download-btn {
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-book-open"></i> E - Makale Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/author/upload_article/"><i class="fas fa-upload"></i> Makale Yükle</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="/author/article_status/"><i class="fas fa-search"></i> Makale Durum Sorgulama</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/author/message_panel/"><i class="fas fa-envelope"></i> Mesajlar</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item">
+                    <button class="btn btn-warning btn-sm" id="verifyEmailBtn" data-bs-toggle="modal" data-bs-target="#emailVerificationModal">
+                        <i class="fas fa-envelope"></i> E-posta Doğrula
+                    </button>
+                </li>
+                <li class="nav-item d-none" id="userEmailContainer">
+                    <span class="nav-link user-email"><i class="fas fa-user"></i> <span id="userEmail"></span></span>
+                </li>
+                <li class="nav-item ms-2">
+                    <button class="btn btn-danger btn-sm d-none" id="logoutBtn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12 text-center mb-4">
+            <h2><i class="fas fa-search"></i> Makale Durum Sorgulama</h2>
+            <p class="text-muted">Makalenizin durumunu takip numarası ile sorgulayabilirsiniz.</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-container">
+                <form id="statusCheckForm">
+                    <!-- E-posta alanı - doğrulanmamış kullanıcılar için görünür -->
+                    <div class="mb-3" id="emailField">
+                        <label for="email" class="form-label">E-posta Adresiniz</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="ornek@email.com" required>
+                    </div>
+                    
+                    <!-- Takip Numarası -->
+                    <div class="mb-3">
+                        <label for="trackingNumber" class="form-label">Makale Takip Numarası</label>
+                        <input type="text" class="form-control" id="trackingNumber" name="trackingNumber" placeholder="8 haneli takip numarası" required>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Sorgula
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sonuç Alanı - İşlem sonrası görünür olacak -->
+    <div class="row status-container" id="statusResult">
+        <div class="col-md-12">
+            <div class="card status-card mb-4">
+                <div class="card-body text-center">
+                    <i id="statusIcon" class="fas fa-spinner fa-spin status-icon status-processing"></i>
+                    <h3 id="articleName">Makale Adı</h3>
+                    <p><strong>Durum:</strong> <span id="statusText">İşleniyor...</span></p>
+                    <p><strong>Yükleme Tarihi:</strong> <span id="submittedDate">01/01/2025</span></p>
+                    
+                    <!-- Download button - Initially hidden, will be shown when is_evaluation_sent is true -->
+                    <div id="downloadButtonContainer" class="mt-3" style="display: none;">
+                        <a id="downloadButton" href="#" class="btn btn-success download-btn">
+                            <i class="fas fa-download"></i> Değerlendirme Raporunu İndir
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Durum Zaman Çizelgesi -->
+            <div class="timeline">
+                <div class="timeline-item waiting">
+                    <div class="timeline-content">
+                        <h5>Makale Yüklendi</h5>
+                        <p>Makaleniz sisteme başarıyla yüklendi ve işlenmek üzere sıraya alındı.</p>
+                    </div>
+                </div>
+                
+                <div class="timeline-item processing" id="refereeAssignmentStep">
+                    <div class="timeline-content">
+                        <h5>Hakem Ataması</h5>
+                        <p>Makaleniz için hakem ataması yapıldı.</p>
+                    </div>
+                </div>
+                
+                <div class="timeline-item" id="evaluationStep">
+                    <div class="timeline-content">
+                        <h5>Değerlendirme Süreci</h5>
+                        <p>Makaleniz değerlendirme sürecinde.</p>
+                    </div>
+                </div>
+                
+                <div class="timeline-item" id="completionStep">
+                    <div class="timeline-content">
+                        <h5>Değerlendirme Tamamlandı</h5>
+                        <p>Makalenizin değerlendirme süreci tamamlandı.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- E-posta Doğrulama Modalı -->
+<div class="modal fade" id="emailVerificationModal" tabindex="-1" aria-labelledby="emailVerificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailVerificationModalLabel">E-posta Doğrulama</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="emailStep">
+                    <label for="emailInput" class="form-label">E-posta adresinizi girin:</label>
+                    <input type="email" class="form-control" id="emailInput" placeholder="ornek@mail.com">
+                    <button class="btn btn-primary mt-3" onclick="sendVerificationCode()">
+                        <i class="fas fa-envelope"></i> Kod Gönder
+                    </button>
+                </div>
+                <div id="verificationStep" style="display: none;">
+                    <label for="codeInput" class="form-label">Gönderilen kodu girin:</label>
+                    <input type="text" class="form-control" id="codeInput" placeholder="4 haneli kod">
+                    <button class="btn btn-success mt-3" onclick="verifyCode()">
+                        <i class="fas fa-check-circle"></i> Doğrula
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Bildirim -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+    <div id="notification-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+            Bu bir bildirim mesajıdır.
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Sayfa yüklendiğinde çalışacak kodlar
+    document.addEventListener("DOMContentLoaded", function () {
+        // Form submit işlemi
+        const statusCheckForm = document.getElementById('statusCheckForm');
+        statusCheckForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            checkArticleStatus();
+        });
+        
+        // E-posta doğrulanmış mı kontrol et
+        const verifiedEmail = sessionStorage.getItem('verifiedEmail');
+        if (verifiedEmail) {
+            // E-posta doğrulanmış, alanı otomatik doldur ve salt-okunur yap
+            const emailField = document.getElementById('email');
+            emailField.value = verifiedEmail;
+            emailField.readOnly = true;
+            
+            // Kullanıcı bilgisini göster
+            document.getElementById('verifyEmailBtn').classList.add('d-none');
+            document.getElementById('userEmailContainer').classList.remove('d-none');
+            document.getElementById('logoutBtn').classList.remove('d-none');
+            document.getElementById('userEmail').textContent = verifiedEmail;
+        }
+    });
+    
+    // Makale durumu sorgulama
+    function checkArticleStatus() {
+        const trackingNumber = document.getElementById('trackingNumber').value;
+        const email = document.getElementById('email').value;
+        
+        if (!trackingNumber || !email) {
+            showNotification("Hata", "Lütfen tüm alanları doldurun.", "error");
+            return;
+        }
+        
+        // AJAX isteği için form verisi oluştur
+        const formData = new FormData();
+        formData.append('tracking_number', trackingNumber);
+        formData.append('email', email);
+        
+        fetch('/author/check_article_status/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayArticleStatus(data);
+            } else {
+                showNotification("Hata", data.message || "Makale bulunamadı!", "error");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification("Hata", "Sunucu hatası: " + error.message, "error");
+        });
+    }
+    
+    // Makale durumunu göster
+    function displayArticleStatus(data) {
+        // Sonuç alanını göster
+        document.getElementById('statusResult').style.display = 'block';
+        
+        // Temel bilgileri doldur
+        document.getElementById('articleName').textContent = data.article_name;
+        document.getElementById('statusText').textContent = data.status;
+        document.getElementById('submittedDate').textContent = data.submitted_date;
+        
+        // Durum ikonunu ayarla
+        const statusIcon = document.getElementById('statusIcon');
+        statusIcon.classList.remove('fa-spinner', 'fa-spin', 'status-waiting', 'status-processing', 'status-completed', 'status-rejected');
+        
+        // Timeline adımlarını ayarla
+        const refereeAssignmentStep = document.getElementById('refereeAssignmentStep');
+        const evaluationStep = document.getElementById('evaluationStep');
+        const completionStep = document.getElementById('completionStep');
+        
+        // Timeline adımlarının classlarını temizle
+        refereeAssignmentStep.className = 'timeline-item';
+        evaluationStep.className = 'timeline-item';
+        completionStep.className = 'timeline-item';
+        
+        // İndirme butonu kontrolü
+        const downloadButtonContainer = document.getElementById('downloadButtonContainer');
+        if (data.is_evaluation_sent) {
+            downloadButtonContainer.style.display = 'block';
+            
+            // İndirme butonunun href değerini ayarla (API endpoint)
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.href = `/author/download_evaluation/${data.tracking_number}/`;
+        } else {
+            downloadButtonContainer.style.display = 'none';
+        }
+        
+        // Duruma göre görsel değişiklikler
+        if (data.status.includes("Hakem Ataması yapıldı")) {
+            statusIcon.classList.add('fa-user-check', 'status-processing');
+            refereeAssignmentStep.classList.add('processing');
+        } else if (data.status.includes("Makale Değerlendirmesi Tamamlandı") || data.status.includes("Değerlendirme:")) {
+            statusIcon.classList.add('fa-check-circle', 'status-completed');
+            refereeAssignmentStep.classList.add('completed');
+            evaluationStep.classList.add('completed');
+            completionStep.classList.add('completed');
+            
+            if (data.status.includes("Reddedildi")) {
+                statusIcon.classList.remove('fa-check-circle', 'status-completed');
+                statusIcon.classList.add('fa-times-circle', 'status-rejected');
+                completionStep.classList.remove('completed');
+                completionStep.classList.add('rejected');
+            }
+        } else if (data.status.includes("Hakem ataması bekleniyor")) {
+            statusIcon.classList.add('fa-clock', 'status-waiting');
+        } else {
+            statusIcon.classList.add('fa-spinner', 'fa-spin', 'status-processing');
+        }
+        
+        // Sayfayı sonuç bölümüne kaydır
+        document.getElementById('statusResult').scrollIntoView({behavior: 'smooth'});
+    }
+    
+    // E-posta doğrulama kodu gönderme
+    function sendVerificationCode() {
+        const email = document.getElementById('emailInput').value;
+        
+        if (!email) {
+            showNotification("Hata", "Lütfen bir e-posta adresi girin.", "error");
+            return;
+        }
+
+        // Form verisi oluştur
+        const formData = new FormData();
+        formData.append('email', email);
+
+        fetch('/author/send_verification_code/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showNotification("Başarılı", "Doğrulama kodu gönderildi!", "success");
+                document.getElementById('emailStep').style.display = 'none';
+                document.getElementById('verificationStep').style.display = 'block';
+                sessionStorage.setItem('verification_code', data.code);
+            } else {
+                showNotification("Hata", data.message || 'Doğrulama kodu gönderilirken bir hata oluştu.', "error");
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            showNotification("Hata", 'Sunucu hatası: ' + err.message, "error");
+        });
+    }
+
+    // Doğrulama kodunu kontrol etme
+    function verifyCode() {
+        const inputCode = document.getElementById('codeInput').value;
+        const actualCode = sessionStorage.getItem('verification_code');
+        const email = document.getElementById('emailInput').value;
+
+        if (inputCode === actualCode) {
+            // Doğrulanmış e-postayı sessionStorage'a kaydet
+            sessionStorage.setItem('verifiedEmail', email);
+            
+            // Kullanıcının giriş yaptığını göstermek için UI'ı güncelle
+            document.getElementById('verifyEmailBtn').classList.add('d-none');
+            document.getElementById('userEmailContainer').classList.remove('d-none');
+            document.getElementById('logoutBtn').classList.remove('d-none');
+            document.getElementById('userEmail').textContent = email;
+            
+            // E-posta alanını güncelle
+            const emailField = document.getElementById('email');
+            if (emailField) {
+                emailField.value = email;
+                emailField.readOnly = true;
+            }
+            
+            // Modalı kapat
+            const modal = bootstrap.Modal.getInstance(document.getElementById('emailVerificationModal'));
+            modal.hide();
+            
+            showNotification("Başarılı", 'E-posta başarıyla doğrulandı!', "success");
+        } else {
+            showNotification("Hata", 'Hatalı doğrulama kodu!', "error");
+        }
+    }
+
+    // Çıkış yapma
+    function logout() {
+        // Session storage'ı temizle
+        sessionStorage.removeItem('verifiedEmail');
+        sessionStorage.removeItem('verification_code');
+        
+        // Kullanıcının çıkış yaptığını göstermek için UI'ı güncelle
+        document.getElementById('verifyEmailBtn').classList.remove('d-none');
+        document.getElementById('userEmailContainer').classList.add('d-none');
+        document.getElementById('logoutBtn').classList.add('d-none');
+        
+        // E-posta alanını sıfırla
+        const emailField = document.getElementById('email');
+        if (emailField) {
+            emailField.value = '';
+            emailField.readOnly = false;
+        }
+        
+        showNotification("Bilgi", 'Çıkış yapıldı.', "info");
+    }
+    
+    // Toast bildirimi gösterme
+    function showNotification(title, message, type) {
+        const toastElement = document.getElementById("notification-toast");
+        document.getElementById("toast-title").textContent = title;
+        document.getElementById("toast-message").textContent = message;
+
+        toastElement.className = "toast";
+        if (type === "success") {
+            toastElement.classList.add("bg-success", "text-white");
+        } else if (type === "error") {
+            toastElement.classList.add("bg-danger", "text-white");
+        } else if (type === "warning") {
+            toastElement.classList.add("bg-warning");
+        } else {
+            toastElement.classList.add("bg-info", "text-white");
+        }
+
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+    }
+</script>
+</body>
+</html>

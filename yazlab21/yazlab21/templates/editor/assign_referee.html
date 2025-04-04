@@ -1,0 +1,641 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hakem Atama - Editör Paneli</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand, .nav-link {
+            color: #fff !important;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+        .card:hover {
+            transform: scale(1.02);
+        }
+        .messages-count-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 10px;
+            background-color: #ff4d6d;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .article-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .article-item:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        .article-item.selected {
+            background-color: rgba(0, 123, 255, 0.1);
+            border-left: 3px solid #007bff;
+        }
+        .article-title {
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-select-referee {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .keyword-badge {
+            background-color: #e9f5ff;
+            color: #0056b3;
+            border: 1px solid #b8daff;
+            border-radius: 20px;
+            padding: 4px 10px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+            font-size: 13px;
+        }
+        .category-badge {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .category-1 {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .category-2 {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+        .category-3 {
+            background-color: #e2e3e5;
+            color: #383d41;
+            border-color: #d6d8db;
+        }
+        .category-4 {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .category-5 {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeeba;
+        }
+        .keyword-list {
+            margin-top: 5px;
+        }
+        .keyword-status {
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .status-pending {
+            color: #ffc107;
+        }
+        .status-completed {
+            color: #28a745;
+        }
+        .status-failed {
+            color: #dc3545;
+        }
+        .status-not-started {
+            color: #6c757d;
+        }
+        .metadata-section {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .metadata-item {
+            margin-bottom: 8px;
+        }
+        .metadata-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .metadata-label i {
+            margin-right: 5px;
+        }
+        .matched-keyword {
+            background-color: #fdf2cc !important;
+            color: #856404 !important;
+            border-color: #ffeeba !important;
+        }
+        .modal-referee-list {
+            margin-top: 20px;
+        }
+        .referee-item {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+        .referee-name {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .referee-branch {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .recommended-referee {
+            border-left: 4px solid #28a745;
+            background-color: #f0fff0;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-user-tie"></i> Editör Paneli</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#"><i class="fas fa-file-alt"></i> Makaleler</a></li>
+                <li class="nav-item"><a class="nav-link active" href="{% url 'editor:assign_referee' %}"><i class="fas fa-user-check"></i> Hakem Atama</a></li>
+                <li class="nav-item position-relative">
+                    <a class="nav-link" href="{% url 'editor:author_messages' %}">
+                        <i class="fas fa-envelope"></i> Mesajlar
+                        {% if unread_messages_count > 0 %}
+                        <span class="messages-count-badge">{{ unread_messages_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Çıkış</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-12">
+            <h2><i class="fas fa-user-check text-primary me-2"></i>Hakem Atama</h2>
+            <p class="text-muted">Makalelere hakem atamak için listeden bir makale seçin.</p>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Makale Listesi</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for article_data in article_list %}
+                        <li class="list-group-item article-item" data-article-id="{{ article_data.article.article_drive_id }}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="article-title">{{ article_data.article.article_name }}</h5>
+                                    
+                                    <div class="metadata-section">
+                                        <div class="metadata-item">
+                                            <div class="metadata-label">
+                                                <i class="fas fa-tag"></i> Kategori:
+                                            </div>
+                                            {% if article_data.category %}
+                                                <span class="category-badge 
+                                                    {% if '1-Artificial Intelligence' in article_data.category %}category-1{% endif %}
+                                                    {% if '2-Human-Computer Interaction' in article_data.category %}category-2{% endif %}
+                                                    {% if '3-Big Data' in article_data.category %}category-3{% endif %}
+                                                    {% if '4-Cyber Security' in article_data.category %}category-4{% endif %}
+                                                    {% if '5-Network' in article_data.category %}category-5{% endif %}
+                                                ">
+                                                    {{ article_data.category }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted fst-italic">Kategori belirlenmedi</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="metadata-item">
+                                            <div class="metadata-label">
+                                                <i class="fas fa-key"></i> Anahtar Kelimeler:
+                                            </div>
+                                            {% if article_data.keywords_status == 'completed' and article_data.keywords %}
+                                                <div class="keyword-list">
+                                                    {% for keyword in article_data.keywords %}
+                                                        {% if keyword in article_data.category_keywords %}
+                                                            <span class="keyword-badge matched-keyword">{{ keyword }}</span>
+                                                        {% else %}
+                                                            <span class="keyword-badge">{{ keyword }}</span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="keyword-status 
+                                                    {% if article_data.keywords_status == 'pending' %}status-pending{% endif %}
+                                                    {% if article_data.keywords_status == 'completed' %}status-completed{% endif %}
+                                                    {% if article_data.keywords_status == 'failed' %}status-failed{% endif %}
+                                                    {% if article_data.keywords_status == 'not_started' %}status-not-started{% endif %}
+                                                ">
+                                                    {% if article_data.keywords_status == 'pending' %}
+                                                        <i class="fas fa-spinner fa-spin me-1"></i>Anahtar kelimeler çıkarılıyor...
+                                                    {% elif article_data.keywords_status == 'completed' and not article_data.keywords %}
+                                                        <i class="fas fa-info-circle me-1"></i>Anahtar kelime bulunamadı
+                                                    {% elif article_data.keywords_status == 'failed' %}
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Anahtar kelimeleri çıkarma başarısız
+                                                    {% else %}
+                                                        <i class="fas fa-clock me-1"></i>Henüz işlenmedi
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if article_data.article.article_status == "Hakem ataması yapıldı" %}
+                                        <div class="metadata-item">
+                                            <div class="metadata-label">
+                                                <i class="fas fa-user-check"></i> Hakem:
+                                            </div>
+                                            <span class="badge bg-success">{{ article_data.article.blurred_pdf.referee_name }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex align-items-center">
+                                    <span class="badge {% if article_data.article.article_status == 'Hakem ataması yapıldı' %}bg-success{% else %}bg-primary{% endif %} rounded-pill me-3">
+                                        {{ article_data.article.article_status }}
+                                    </span>
+                                    <div class="action-buttons">
+                                        {% if article_data.article.article_status != "Hakem ataması yapıldı" %}
+                                        <button class="btn btn-sm btn-select-referee" data-article-id="{{ article_data.article.article_drive_id }}" 
+                                                data-article-name="{{ article_data.article.article_name }}"
+                                                data-article-category="{{ article_data.category }}"
+                                                data-bs-toggle="modal" data-bs-target="#refereeModal">
+                                            <i class="fas fa-user-plus me-1"></i> Hakem Seç
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-secondary" disabled>
+                                            <i class="fas fa-check-circle me-1"></i> Hakem Atandı
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">Henüz makale yüklenmedi.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="refereeModal" tabindex="-1" aria-labelledby="refereeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="refereeModalLabel">Hakem Seçimi</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="selected-article-id" value="">
+          
+          <h4 id="modal-article-title"></h4>
+  
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="metadata-item">
+                <div class="metadata-label">
+                  <i class="fas fa-tag"></i> Kategori:
+                </div>
+                <span id="modal-article-category" class="category-badge"></span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="metadata-item">
+                <div class="metadata-label">
+                  <i class="fas fa-key"></i> Anahtar Kelimeler:
+                </div>
+                <div id="modal-article-keywords" class="keyword-list"></div>
+              </div>
+            </div>
+          </div>
+  
+          <hr>
+          <h5><i class="fas fa-user-check text-primary me-2"></i>Hakem Seçiniz</h5>
+  
+          <div class="modal-referee-list" id="modal-referee-list">
+            <div class="recommended-referee-section mb-4">
+              <h6 class="text-success"><i class="fas fa-thumbs-up me-1"></i> Tavsiye Edilen Hakemler</h6>
+              <div id="recommended-referees"></div>
+            </div>
+            <div class="other-referee-section">
+              <h6 class="text-muted"><i class="fas fa-user me-1"></i> Diğer Hakemler</h6>
+              <div id="other-referees"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+          <button type="button" class="btn btn-primary" id="confirmRefereeButton" disabled>Hakemi Seç</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="notification-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+            İşlem tamamlandı.
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const articleItems = document.querySelectorAll('.article-item');
+        const toastElement = document.getElementById("notification-toast");
+        const toast = new bootstrap.Toast(toastElement);
+        const refereeModal = document.getElementById('refereeModal');
+        let selectedRefereeId = null;
+
+        articleItems.forEach(item => {
+            item.addEventListener('click', function (e) {
+                if (
+                    e.target.closest('.btn-select-referee') ||
+                    e.target.closest('.keyword-badge') ||
+                    e.target.closest('.category-badge')
+                ) {
+                    return;
+                }
+
+                document.querySelectorAll('.article-item.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+
+                this.classList.add('selected');
+
+                const articleId = this.getAttribute('data-article-id');
+                showNotification("Makale Seçildi", `Makale seçildi (ID: ${articleId})`, "info");
+            });
+        });
+
+        document.querySelectorAll('.btn-select-referee').forEach(button => {
+            button.addEventListener('click', function () {
+                const articleId = this.getAttribute('data-article-id');
+                const articleName = this.getAttribute('data-article-name');
+                const articleCategory = this.getAttribute('data-article-category');
+                
+                document.getElementById('selected-article-id').value = articleId;
+                
+                document.getElementById('modal-article-title').textContent = articleName;
+
+                const categoryElement = document.getElementById('modal-article-category');
+                categoryElement.textContent = articleCategory || 'Kategori belirlenmedi';
+                categoryElement.className = 'category-badge';
+
+                if (articleCategory) {
+                    if (articleCategory.includes('1-Artificial Intelligence')) {
+                        categoryElement.classList.add('category-1');
+                    } else if (articleCategory.includes('2-Human-Computer Interaction')) {
+                        categoryElement.classList.add('category-2');
+                    } else if (articleCategory.includes('3-Big Data')) {
+                        categoryElement.classList.add('category-3');
+                    } else if (articleCategory.includes('4-Cyber Security')) {
+                        categoryElement.classList.add('category-4');
+                    } else if (articleCategory.includes('5-Network')) {
+                        categoryElement.classList.add('category-5');
+                    }
+                }
+
+                const keywordsElement = document.getElementById('modal-article-keywords');
+                keywordsElement.innerHTML = '';
+
+                fetch('/editor/get_article_keywords/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ article_id: articleId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.keywords && data.keywords.length > 0) {
+                                data.keywords.forEach(keyword => {
+                                    const keywordSpan = document.createElement('span');
+                                    keywordSpan.classList.add('keyword-badge');
+                                    if (data.category_keywords && data.category_keywords.includes(keyword)) {
+                                        keywordSpan.classList.add('matched-keyword');
+                                    }
+                                    keywordSpan.textContent = keyword;
+                                    keywordsElement.appendChild(keywordSpan);
+                                });
+                            } else {
+                                keywordsElement.innerHTML = '<span class="text-muted fst-italic">Anahtar kelime bulunamadı</span>';
+                            }
+
+                            const recommendedContainer = document.getElementById('recommended-referees');
+                            const otherContainer = document.getElementById('other-referees');
+                            recommendedContainer.innerHTML = '';
+                            otherContainer.innerHTML = '';
+
+                            fetch('/editor/get_referees_by_category/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                body: JSON.stringify({ category: articleCategory })
+                            })
+                                .then(response => response.json())
+                                .then(refereeData => {
+                                    if (refereeData.success && refereeData.referees) {
+                                        refereeData.referees.forEach(referee => {
+                                            const refereeDiv = document.createElement('div');
+                                            refereeDiv.classList.add('referee-item');
+
+                                            const isRecommended = referee.branch === articleCategory;
+                                            if (isRecommended) {
+                                                refereeDiv.classList.add('recommended-referee');
+                                            }
+
+                                            refereeDiv.innerHTML = `
+                                                <div class="form-check">
+                                                    <input class="form-check-input referee-checkbox" type="radio" name="referee" 
+                                                        id="referee-${referee.id}" value="${referee.id}" 
+                                                        data-referee-name="${referee.name}">
+                                                    <label class="form-check-label" for="referee-${referee.id}">
+                                                        <div class="referee-name">${referee.name}</div>
+                                                        <div class="referee-branch">${referee.branch}</div>
+                                                    </label>
+                                                </div>
+                                            `;
+
+                                            if (isRecommended) {
+                                                recommendedContainer.appendChild(refereeDiv);
+                                            } else {
+                                                otherContainer.appendChild(refereeDiv);
+                                            }
+                                        });
+
+                                        document.querySelectorAll('.referee-checkbox').forEach(checkbox => {
+                                            checkbox.addEventListener('change', function () {
+                                                if (this.checked) {
+                                                    selectedRefereeId = this.value;
+                                                    document.getElementById('confirmRefereeButton').disabled = false;
+                                                }
+                                            });
+                                        });
+                                    } else {
+                                        recommendedContainer.innerHTML = '';
+                                        otherContainer.innerHTML = '<div class="alert alert-warning">Hakem bilgisi bulunamadı</div>';
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Hakem verisi hatası:', error);
+                                    otherContainer.innerHTML = '<div class="alert alert-danger">Hakemler alınamadı.</div>';
+                                });
+
+                        } else {
+                            keywordsElement.innerHTML = '<span class="text-muted fst-italic">Anahtar kelime yüklenemedi</span>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Makale verisi hatası:', error);
+                        keywordsElement.innerHTML = '<span class="text-muted fst-italic">Hata oluştu</span>';
+                    });
+            });
+        });
+
+        document.getElementById('confirmRefereeButton').addEventListener('click', function () {
+            if (selectedRefereeId) {
+                const checkedRadio = document.querySelector('input[name="referee"]:checked');
+                const refereeName = checkedRadio.getAttribute('data-referee-name');
+                
+                const articleId = document.getElementById('selected-article-id').value;
+
+                fetch('/editor/assign_referee_action/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        article_id: articleId,
+                        referee_id: selectedRefereeId
+                    })
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showNotification("Hakem Atandı", result.message, "success");
+                            
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            showNotification("Hata", result.message, "error");
+                        }
+
+                        const modalInstance = bootstrap.Modal.getInstance(refereeModal);
+                        modalInstance.hide();
+                        selectedRefereeId = null;
+                    })
+                    .catch(error => {
+                        console.error("Hakem atama hatası:", error);
+                        showNotification("Hata", "Hakem atama işlemi başarısız oldu", "error");
+                    });
+            } else {
+                showNotification("Hakem Seçilmedi", "Lütfen bir hakem seçin", "warning");
+            }
+        });
+
+        refereeModal.addEventListener('show.bs.modal', function () {
+            document.getElementById('confirmRefereeButton').disabled = true;
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function showNotification(title, message, type) {
+            document.getElementById("toast-title").textContent = title;
+            document.getElementById("toast-message").textContent = message;
+
+            toastElement.className = "toast";
+            if (type === "success") {
+                toastElement.classList.add("bg-success", "text-white");
+            } else if (type === "error") {
+                toastElement.classList.add("bg-danger", "text-white");
+            } else if (type === "warning") {
+                toastElement.classList.add("bg-warning");
+            } else {
+                toastElement.classList.add("bg-info", "text-white");
+            }
+
+            toast.show();
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

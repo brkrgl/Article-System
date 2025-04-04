@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E - Makale Sistemi</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff !important;
+        }
+        .nav-link {
+            color: #fff !important;
+            transition: 0.3s;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .btn-custom {
+            background: #ff4d6d;
+            color: white;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .btn-custom:hover {
+            background: #e63e5a;
+            color: white;
+        }
+        .btn-success, .btn-primary, .btn-warning {
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .user-email {
+            font-size: 14px;
+            color: white;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-book-open"></i> E - Makale Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item d-none" id="uploadArticleItem">
+                    <a class="nav-link" href="/author/upload_article/"><i class="fas fa-upload"></i> Makale Yükle</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/author/article_status/"><i class="fas fa-search"></i> Makale Durum Sorgulama</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/author/message_panel/"><i class="fas fa-envelope"></i> Mesajlar</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item">
+                    <button class="btn btn-warning btn-sm" id="verifyEmailBtn" data-bs-toggle="modal" data-bs-target="#emailVerificationModal">
+                        <i class="fas fa-envelope"></i> E-posta Doğrula
+                    </button>
+                </li>
+                <li class="nav-item d-none" id="userEmailContainer">
+                    <span class="nav-link user-email"><i class="fas fa-user"></i> <span id="userEmail"></span></span>
+                </li>
+                <li class="nav-item ms-2">
+                    <button class="btn btn-danger btn-sm d-none" id="logoutBtn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="modal fade" id="emailVerificationModal" tabindex="-1" aria-labelledby="emailVerificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailVerificationModalLabel">E-posta Doğrulama</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="emailStep">
+                    <label for="emailInput" class="form-label">E-posta adresinizi girin:</label>
+                    <input type="email" class="form-control" id="emailInput" placeholder="ornek@mail.com">
+                    <button class="btn btn-custom mt-3" onclick="sendVerificationCode()">
+                        <i class="fas fa-envelope"></i> Kod Gönder
+                    </button>
+                </div>
+                <div id="verificationStep" style="display: none;">
+                    <label for="codeInput" class="form-label">Gönderilen kodu girin:</label>
+                    <input type="text" class="form-control" id="codeInput" placeholder="4 haneli kod">
+                    <button class="btn btn-custom mt-3" onclick="verifyCode()">
+                        <i class="fas fa-check-circle"></i> Doğrula
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toastElement = document.getElementById("notification-toast");
+        if (toastElement) {
+            const toast = new bootstrap.Toast(toastElement);
+            
+            document.querySelectorAll('.btn-select-referee').forEach(button => {
+                button.addEventListener('click', function() {
+                    const refereeName = this.getAttribute('data-referee-name');
+                    showNotification("Hakem Seçildi", `${refereeName} seçildi.`, "success");
+                });
+            });
+            
+            function showNotification(title, message, type) {
+                document.getElementById("toast-title").textContent = title;
+                document.getElementById("toast-message").textContent = message;
+
+                toastElement.className = "toast";
+                if (type === "success") {
+                    toastElement.classList.add("bg-success", "text-white");
+                } else if (type === "error") {
+                    toastElement.classList.add("bg-danger", "text-white");
+                } else if (type === "warning") {
+                    toastElement.classList.add("bg-warning");
+                } else {
+                    toastElement.classList.add("bg-info", "text-white");
+                }
+
+                toast.show();
+            }
+        }
+        
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase();
+                filterReferees(searchText, 'all');
+            });
+            
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const filter = this.getAttribute('data-filter');
+                    const searchText = document.getElementById('searchInput').value.toLowerCase();
+                    filterReferees(searchText, filter);
+                });
+            });
+            
+            function filterReferees(searchText, branch) {
+                const refereeItems = document.querySelectorAll('.referee-item');
+                
+                refereeItems.forEach(item => {
+                    const refereeName = item.querySelector('.referee-name').textContent.toLowerCase();
+                    const refereeBranch = item.getAttribute('data-branch').toLowerCase();
+                    
+                    const nameMatch = refereeName.includes(searchText);
+                    const branchMatch = branch === 'all' || refereeBranch.includes(branch.toLowerCase());
+                    
+                    if (nameMatch && branchMatch) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+    });
+
+    function sendVerificationCode() {
+        const email = document.getElementById('emailInput').value;
+        
+        if (!email) {
+            alert('Lütfen bir e-posta adresi girin.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('email', email);
+
+        fetch('author/send_verification_code/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`API returned ${res.status}: ${res.statusText}`);
+            }
+            return res.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Response is not valid JSON:", text);
+                    throw new Error("Sunucu geçersiz bir yanıt döndürdü.");
+                }
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Doğrulama kodu gönderildi!');
+                document.getElementById('emailStep').style.display = 'none';
+                document.getElementById('verificationStep').style.display = 'block';
+                sessionStorage.setItem('verification_code', data.code);
+            } else {
+                alert(data.message || 'Doğrulama kodu gönderilirken bir hata oluştu.');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Sunucu hatası: ' + err.message);
+        });
+    }
+
+    function verifyCode() {
+        const inputCode = document.getElementById('codeInput').value;
+        const actualCode = sessionStorage.getItem('verification_code');
+        const email = document.getElementById('emailInput').value;
+
+        if (inputCode === actualCode) {
+            sessionStorage.setItem('verifiedEmail', email);
+            
+            document.getElementById('verifyEmailBtn').classList.add('d-none');
+            document.getElementById('userEmailContainer').classList.remove('d-none');
+            document.getElementById('logoutBtn').classList.remove('d-none');
+            document.getElementById('userEmail').textContent = email;
+            
+            document.getElementById('uploadArticleItem').classList.remove('d-none');
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('emailVerificationModal'));
+            modal.hide();
+            
+            alert('E-posta başarıyla doğrulandı!');
+        } else {
+            alert('Hatalı doğrulama kodu!');
+        }
+    }
+
+    function logout() {
+        sessionStorage.removeItem('verifiedEmail');
+        sessionStorage.removeItem('verification_code');
+        
+        document.getElementById('verifyEmailBtn').classList.remove('d-none');
+        document.getElementById('userEmailContainer').classList.add('d-none');
+        document.getElementById('logoutBtn').classList.add('d-none');
+        
+        document.getElementById('uploadArticleItem').classList.add('d-none');
+        
+        alert('Çıkış yapıldı.');
+    }
+
+    window.addEventListener('load', function() {
+        const verifiedEmail = sessionStorage.getItem('verifiedEmail');
+        if (verifiedEmail) {
+            document.getElementById('verifyEmailBtn').classList.add('d-none');
+            document.getElementById('userEmailContainer').classList.remove('d-none');
+            document.getElementById('logoutBtn').classList.remove('d-none');
+            document.getElementById('userEmail').textContent = verifiedEmail;
+            
+            document.getElementById('uploadArticleItem').classList.remove('d-none');
+        }
+    });
+</script>   

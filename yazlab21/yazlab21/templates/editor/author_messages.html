@@ -1,0 +1,270 @@
+{% extends 'utils/base.html' %}
+
+{% block title %}Yazar Mesajları{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3"><i class="fas fa-envelope me-2"></i>Yazar Mesajları</h1>
+            <p class="text-muted">Yazarlardan gelen tüm mesajlar</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Mesajlar</h5>
+                    {% if unread_messages_count > 0 %}
+                    <span class="badge bg-danger">{{ unread_messages_count }} okunmamış</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Durum</th>
+                                        <th>Gönderen</th>
+                                        <th>Konu</th>
+                                        <th>Tarih</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for message in messages %}
+                                    <tr class="{% if not message.is_read %}table-warning{% endif %}" data-id="{{ message.id }}">
+                                        <td>
+                                            {% if not message.is_read %}
+                                            <span class="badge rounded-pill bg-warning text-dark">Yeni</span>
+                                            {% else %}
+                                            <span class="badge rounded-pill bg-secondary">Okundu</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ message.message_sender_email }}</td>
+                                        <td>{{ message.message_title }}</td>
+                                        <td>{{ message.message_time|date:"d.m.Y H:i" }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary view-message" data-bs-toggle="modal" data-bs-target="#messageDetailModal" 
+                                                data-id="{{ message.id }}"
+                                                data-email="{{ message.message_sender_email }}"
+                                                data-title="{{ message.message_title }}"
+                                                data-text="{{ message.message_text }}"
+                                                data-time="{{ message.message_time|date:'d.m.Y H:i' }}">
+                                                <i class="fas fa-eye"></i> Görüntüle
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% if messages.has_other_pages %}
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if messages.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ messages.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for i in messages.paginator.page_range %}
+                                    {% if messages.number == i %}
+                                    <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                                    {% else %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if messages.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ messages.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">Henüz hiç mesaj yok.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="messageDetailModal" tabindex="-1" aria-labelledby="messageDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageDetailModalLabel">Mesaj Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="message-detail-content mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 id="detailSubject"></h5>
+                        <span class="badge bg-info" id="detailDate"></span>
+                    </div>
+                    <p class="text-muted mb-3">
+                        <strong>Gönderen:</strong> <span id="detailEmail"></span>
+                    </p>
+                    <hr>
+                    <div id="detailContent" class="border p-3 rounded bg-light"></div>
+                </div>
+                
+                <div class="reply-form">
+                    <h6 class="mb-3">Yazara Yanıt Gönder</h6>
+                    <form id="replyForm">
+                        <input type="hidden" id="replyToEmail" name="replyToEmail">
+                        <input type="hidden" id="originalMessageId" name="originalMessageId">
+                        
+                        <div class="mb-3">
+                            <label for="replySubject" class="form-label">Konu</label>
+                            <input type="text" class="form-control" id="replySubject" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="replyContent" class="form-label">Mesaj</label>
+                            <textarea class="form-control" id="replyContent" rows="5" required></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="sendReplyBtn">
+                    <i class="fas fa-paper-plane me-1"></i> Yanıtla
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.view-message').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const email = this.dataset.email;
+            const title = this.dataset.title;
+            const text = this.dataset.text;
+            const time = this.dataset.time;
+            
+            document.getElementById('detailSubject').textContent = title;
+            document.getElementById('detailEmail').textContent = email;
+            document.getElementById('detailDate').textContent = time;
+            document.getElementById('detailContent').textContent = text;
+            
+            document.getElementById('replyToEmail').value = email;
+            document.getElementById('originalMessageId').value = id;
+            document.getElementById('replySubject').value = `RE: ${title}`;
+            
+            markMessageAsRead(id);
+        });
+    });
+    
+    document.getElementById('sendReplyBtn').addEventListener('click', function() {
+        sendReply();
+    });
+    
+    function markMessageAsRead(messageId) {
+        fetch('/editor/mark_message_as_read/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message_id: messageId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const messageRow = document.querySelector(`tr[data-id="${messageId}"]`);
+                if (messageRow) {
+                    messageRow.classList.remove('table-warning');
+                    messageRow.querySelector('td:first-child .badge').className = 'badge rounded-pill bg-secondary';
+                    messageRow.querySelector('td:first-child .badge').textContent = 'Okundu';
+                }
+                
+                const unreadBadge = document.querySelector('.card-header .badge');
+                if (unreadBadge && data.unread_count > 0) {
+                    unreadBadge.textContent = `${data.unread_count} okunmamış`;
+                } else if (unreadBadge) {
+                    unreadBadge.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+        });
+    }
+    
+    function sendReply() {
+        const to = document.getElementById('replyToEmail').value;
+        const subject = document.getElementById('replySubject').value;
+        const content = document.getElementById('replyContent').value;
+        const originalMessageId = document.getElementById('originalMessageId').value;
+        
+        if (!subject || !content) {
+            alert('Lütfen konu ve mesaj içeriğini doldurun.');
+            return;
+        }
+        
+        fetch('/editor/send_reply_to_author/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                to: to,
+                subject: subject,
+                content: content,
+                original_message_id: originalMessageId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Yanıt başarıyla gönderildi.');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('messageDetailModal'));
+                modal.hide();
+                
+                document.getElementById('replyContent').value = '';
+            } else {
+                alert(`Hata: ${data.message}`);
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            alert('Bir hata oluştu, lütfen tekrar deneyin.');
+        });
+    }
+});
+</script>
+{% endblock %}

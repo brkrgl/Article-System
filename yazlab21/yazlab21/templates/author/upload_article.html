@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E - Makale Sistemi</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff !important;
+        }
+        .nav-link {
+            color: #fff !important;
+            transition: 0.3s;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .btn-custom {
+            background: #ff4d6d;
+            color: white;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .btn-custom:hover {
+            background: #e63e5a;
+            color: white;
+        }
+        .btn-success, .btn-primary, .btn-warning {
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .user-email {
+            font-size: 14px;
+            color: white;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        #resultContainer {
+            display: none;
+            margin-top: 20px;
+        }
+        .email-input-container {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-book-open"></i> E - Makale Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Navbar Linkleri -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <!-- Makale Durum Sorgulama Linki -->
+                <li class="nav-item">
+                    <a class="nav-link" href="#"><i class="fas fa-search"></i> Makale Durum Sorgulama</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- İçerik Alanı -->
+<div class="container mt-4">
+    <h1 class="mb-4">Makale Yükleme</h1>
+
+    <!-- Makale yükleme formu -->
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <!-- E-posta giriş alanı -->
+        <div class="mb-3 email-input-container">
+            <label for="emailInput" class="form-label"><strong>E-posta Adresiniz:</strong></label>
+            <input type="email" class="form-control" id="emailInput" name="email" placeholder="ornek@mail.com" required>
+            <small class="text-muted">* Bu adrese takip kodunuz ve bilgilendirmeler gönderilecektir.</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="fileInput" class="form-label"><strong>PDF Dosyası Seçin:</strong></label>
+            <div class="input-group">
+                <input type="file" class="form-control" id="fileInput" name="file" accept=".pdf" required>
+                <label class="input-group-text" for="fileInput"><i class="fas fa-file-upload"></i></label>
+            </div>
+            <small class="text-muted">* Sadece PDF dosyaları yüklenebilir.</small>
+        </div>
+        
+        <button type="button" class="btn btn-primary" id="uploadBtn">
+            <i class="fas fa-upload"></i> Yükle
+        </button>
+        <button type="button" class="btn btn-secondary" id="previewBtn">
+            <i class="fas fa-eye"></i> Önizleme
+        </button>
+    </form>
+    
+    <!-- Sonuç alanı -->
+    <div id="resultContainer" class="alert alert-success mt-4">
+        <h4><i class="fas fa-check-circle"></i> Makaleniz Başarıyla Yüklendi!</h4>
+        <p>Takip numaranız: <strong id="trackingNumber"></strong></p>
+        <p>E-posta adresinize erişim kodunuz ve detaylı bilgiler gönderilmiştir. Bu kodu ve takip numaranızı kullanarak makalenizin durumunu sorgulayabilirsiniz.</p>
+    </div>
+</div>
+
+<!-- PDF Önizleme Modalı -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl"> <!-- modal-xl ile daha geniş ekranda büyük modal -->
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel"><i class="fas fa-file-pdf"></i> PDF Önizleme</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body" style="height: 80vh;"> 
+        <!-- 80vh, dikeyde ekranın %80'ini kaplasın -->
+        <iframe id="pdfPreviewFrame" style="width:100%; height:100%;" frameborder="0"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap 5 JavaScript (bundled) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // localStorage'dan e-posta bilgisini al ve form alanına doldur (eğer varsa)
+    let userEmail = sessionStorage.getItem("verifiedEmail");
+    
+    if (userEmail) {
+      // E-posta alanını otomatik doldur
+      document.getElementById("emailInput").value = userEmail;
+    }
+  });
+  
+  // Makale Yükleme Butonu
+  document.getElementById('uploadBtn').addEventListener('click', function() {
+    const fileInput = document.getElementById('fileInput');
+    const emailInput = document.getElementById('emailInput');
+    
+    // Form doğrulama
+    if (!fileInput.files || !fileInput.files[0]) {
+      alert("Lütfen yüklemek için bir PDF dosyası seçin.");
+      return;
+    }
+    
+    if (!emailInput.value) {
+      alert("Lütfen e-posta adresinizi girin.");
+      return;
+    }
+    
+    // Dosyayı ve e-posta bilgisini AJAX ile sunucuya gönder
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('email', emailInput.value);
+    
+    // Yükleme başladığında butonu devre dışı bırak
+    const uploadBtn = document.getElementById('uploadBtn');
+    const originalText = uploadBtn.innerHTML;
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yükleniyor...';
+    
+    // Projenin URL yapısına uygun API URL'i
+    fetch("/author/upload-file/", {
+      method: "POST",
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Ana URL çalışmadı, kök dizindeki URL'yi dene
+          console.log("URL /author/upload-file/ çalışmadı, /upload-file/ deneniyor...");
+          return fetch("/upload-file/", {
+            method: "POST",
+            body: formData
+          });
+        }
+        throw new Error(`API yanıtı: ${response.status} ${response.statusText}`);
+      }
+      return response;
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`API yanıtı: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Yükleme tamamlandığında butonu tekrar etkinleştir
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = originalText;
+      
+      if (data.message) {
+        if (data.tracking_number) {
+          // Başarılı yükleme durumunda sonuç göster
+          document.getElementById('trackingNumber').textContent = data.tracking_number;
+          document.getElementById('resultContainer').style.display = 'block';
+          
+          // Formu temizle (e-posta alanı hariç)
+          document.getElementById('fileInput').value = '';
+          
+          // E-postayı sessionstorage'e kaydet
+          sessionStorage.setItem('verifiedEmail', emailInput.value);
+          
+          // Sayfa konumunu sonuç alanına kaydır
+          document.getElementById('resultContainer').scrollIntoView({behavior: 'smooth'});
+        } else {
+          alert(data.message);
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Dosya yüklenirken hata:", error);
+      alert("Dosya yüklenirken bir hata oluştu. Lütfen tekrar deneyin.");
+      
+      // Hata durumunda butonu tekrar etkinleştir
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = originalText;
+    });
+  });
+  
+  // Önizleme Butonu
+  document.getElementById('previewBtn').addEventListener('click', function() {
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files || !fileInput.files[0]) {
+      alert("Önizleme için bir PDF dosyası seçin.");
+      return;
+    }
+    
+    // Önizleme yükleniyor göstergesi
+    const previewBtn = document.getElementById('previewBtn');
+    const originalPreviewText = previewBtn.innerHTML;
+    previewBtn.disabled = true;
+    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yükleniyor...';
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    
+    // Projenin URL yapısına uygun önizleme URL'i
+    fetch("/author/show-article/", {
+      method: "POST",
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Ana URL çalışmadı, kök dizindeki URL'yi dene
+          console.log("URL /author/show-article/ çalışmadı, /show-article/ deneniyor...");
+          return fetch("/show-article/", {
+            method: "POST",
+            body: formData
+          });
+        }
+        throw new Error(`API yanıtı: ${response.status} ${response.statusText}`);
+      }
+      return response;
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`API yanıtı: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.text().then(text => {
+        try {
+          // JSON yanıtı olarak analiz etmeyi dene
+          return JSON.parse(text);
+        } catch (e) {
+          // HTML yanıtı olabilir, bu bir hata durumudur
+          console.error("Sunucu JSON olmayan yanıt döndürdü:", text.substring(0, 150) + "...");
+          throw new Error("Sunucu beklenmeyen bir yanıt formatı döndürdü.");
+        }
+      });
+    })
+    .then(data => {
+      // Butonu normal durumuna getir
+      previewBtn.disabled = false;
+      previewBtn.innerHTML = originalPreviewText;
+      
+      if (data.file_url) {
+        // PDF dosyasını iFrame'e yükle
+        document.getElementById('pdfPreviewFrame').src = data.file_url;
+
+        // Modal'ı aç
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+      } else if (data.error) {
+        alert("Hata: " + data.error);
+      }
+    })
+    .catch(error => {
+      previewBtn.disabled = false;
+      previewBtn.innerHTML = originalPreviewText;
+      
+      console.error("Önizleme hatası:", error);
+      alert("Dosya önizlenirken hata oluştu: " + error.message);
+    });
+  });
+</script>
+
+</body>
+</html>

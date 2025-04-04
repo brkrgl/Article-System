@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E - Makale Sistemi - Mesajlar</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (İkonlar için) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff !important;
+        }
+        .nav-link {
+            color: #fff !important;
+            transition: 0.3s;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .btn-custom {
+            background: #ff4d6d;
+            color: white;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .btn-custom:hover {
+            background: #e63e5a;
+            color: white;
+        }
+        .user-email {
+            font-size: 14px;
+            color: white;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .messages-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .message-card {
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .message-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .message-header {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 10px 10px 0 0;
+            border-bottom: 1px solid #eee;
+        }
+        .message-body {
+            padding: 15px;
+        }
+        .message-time {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .tab-content {
+            padding-top: 20px;
+        }
+        .compose-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-book-open"></i> E - Makale Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/author/upload_article/"><i class="fas fa-upload"></i> Makale Yükle</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"><i class="fas fa-search"></i> Makale Durum Sorgulama</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/author/message_panel/"><i class="fas fa-envelope"></i> Mesajlar</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item d-none" id="userEmailContainer">
+                    <span class="nav-link user-email"><i class="fas fa-user"></i> <span id="userEmail"></span></span>
+                </li>
+                <li class="nav-item ms-2">
+                    <button class="btn btn-danger btn-sm d-none" id="logoutBtn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-warning btn-sm" id="verifyEmailBtn" data-bs-toggle="modal" data-bs-target="#emailVerificationModal">
+                        <i class="fas fa-envelope"></i> E-posta Doğrula
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Ana İçerik -->
+<div class="container messages-container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-envelope"></i> Mesaj Paneli</h2>
+        <!-- Editöre Mesaj Gönder Butonu -->
+        <button class="btn btn-primary d-none" id="sendMessageBtn" data-bs-toggle="modal" data-bs-target="#sendMessageModal">
+            <i class="fas fa-paper-plane"></i> Editöre Mesaj Gönder
+        </button>
+    </div>
+    
+    <!-- E-posta doğrulaması yapılmamışsa -->
+    <div id="not-authenticated" class="alert alert-warning text-center">
+        <i class="fas fa-exclamation-triangle"></i> Mesajlarınızı görüntülemek için lütfen e-posta adresinizi doğrulayın.
+    </div>
+    
+    <!-- E-posta doğrulaması yapılmışsa -->
+    <div id="authenticated-content" class="d-none">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Gelen Mesajlar</h5>
+            </div>
+            <div class="card-body">
+                <div id="messages-list">
+                    <!-- Mesajlar burada listelenecek -->
+                    <div class="text-center py-5" id="no-messages">
+                        <i class="fas fa-envelope-open fa-3x mb-3 text-muted"></i>
+                        <p class="text-muted">Henüz mesajınız bulunmamaktadır.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- E-posta Doğrulama Modalı -->
+<div class="modal fade" id="emailVerificationModal" tabindex="-1" aria-labelledby="emailVerificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailVerificationModalLabel">E-posta Doğrulama</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="emailStep">
+                    <label for="emailInput" class="form-label">E-posta adresinizi girin:</label>
+                    <input type="email" class="form-control" id="emailInput" placeholder="ornek@mail.com">
+                    <button class="btn btn-custom mt-3" onclick="sendVerificationCode()">
+                        <i class="fas fa-envelope"></i> Kod Gönder
+                    </button>
+                </div>
+                <div id="verificationStep" style="display: none;">
+                    <label for="codeInput" class="form-label">Gönderilen kodu girin:</label>
+                    <input type="text" class="form-control" id="codeInput" placeholder="4 haneli kod">
+                    <button class="btn btn-custom mt-3" onclick="verifyCode()">
+                        <i class="fas fa-check-circle"></i> Doğrula
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mesaj Detay Modalı -->
+<div class="modal fade" id="messageDetailModal" tabindex="-1" aria-labelledby="messageDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageDetailModalLabel">Mesaj Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="message-detail-content">
+                    <h5 id="detailSubject"></h5>
+                    <p class="text-muted">
+                        <small id="detailDate"></small>
+                    </p>
+                    <hr>
+                    <div id="detailContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="replyBtn" data-bs-toggle="modal" data-bs-target="#sendMessageModal">
+                    <i class="fas fa-reply"></i> Yanıtla
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Editöre Mesaj Gönderme Modalı -->
+<div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sendMessageModalLabel">Editöre Mesaj Gönder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="messageForm">
+                    <div class="mb-3">
+                        <label for="messageSubject" class="form-label">Konu:</label>
+                        <input type="text" class="form-control" id="messageSubject" placeholder="Konu başlığı" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="messageContent" class="form-label">Mesaj:</label>
+                        <textarea class="form-control" id="messageContent" rows="5" placeholder="Mesajınızı yazın" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="submitMessageBtn">
+                    <i class="fas fa-paper-plane"></i> Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Sayfa yüklendiğinde çalışacak kodlar
+    document.addEventListener("DOMContentLoaded", function () {
+        checkAuthentication();
+        
+        // Mesaj gönderme butonu
+        document.getElementById('submitMessageBtn').addEventListener('click', function() {
+            sendMessage();
+        });
+        
+        // Yanıtla butonu
+        document.getElementById('replyBtn').addEventListener('click', function() {
+            const messageTitle = document.getElementById('detailSubject').textContent;
+            document.getElementById('messageSubject').value = `RE: ${messageTitle}`;
+        });
+    });
+    
+    // Kullanıcının oturum durumunu kontrol eder
+    function checkAuthentication() {
+        const verifiedEmail = sessionStorage.getItem('verifiedEmail');
+        
+        if (verifiedEmail) {
+            // Kullanıcı giriş yapmış
+            document.getElementById('verifyEmailBtn').classList.add('d-none');
+            document.getElementById('userEmailContainer').classList.remove('d-none');
+            document.getElementById('logoutBtn').classList.remove('d-none');
+            document.getElementById('sendMessageBtn').classList.remove('d-none');
+            document.getElementById('userEmail').textContent = verifiedEmail;
+            
+            // Mesaj panelini göster
+            document.getElementById('not-authenticated').classList.add('d-none');
+            document.getElementById('authenticated-content').classList.remove('d-none');
+            
+            // Mesajları yükle
+            loadMessages();
+        }
+    }
+    
+    // E-posta doğrulama kodu gönderme
+    function sendVerificationCode() {
+        const email = document.getElementById('emailInput').value;
+        
+        if (!email) {
+            alert('Lütfen bir e-posta adresi girin.');
+            return;
+        }
+
+        // Form verisi oluştur
+        const formData = new FormData();
+        formData.append('email', email);
+
+        fetch('/author/send_verification_code/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`API returned ${res.status}: ${res.statusText}`);
+            }
+            return res.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Response is not valid JSON:", text);
+                    throw new Error("Sunucu geçersiz bir yanıt döndürdü.");
+                }
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Doğrulama kodu gönderildi!');
+                document.getElementById('emailStep').style.display = 'none';
+                document.getElementById('verificationStep').style.display = 'block';
+                sessionStorage.setItem('verification_code', data.code);
+            } else {
+                alert(data.message || 'Doğrulama kodu gönderilirken bir hata oluştu.');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Sunucu hatası: ' + err.message);
+        });
+    }
+
+    // Doğrulama kodunu kontrol etme
+    function verifyCode() {
+        const inputCode = document.getElementById('codeInput').value;
+        const actualCode = sessionStorage.getItem('verification_code');
+        const email = document.getElementById('emailInput').value;
+
+        if (inputCode === actualCode) {
+            // Doğrulanmış e-postayı sessionStorage'a kaydet
+            sessionStorage.setItem('verifiedEmail', email);
+            
+            // Modalı kapat
+            const modal = bootstrap.Modal.getInstance(document.getElementById('emailVerificationModal'));
+            modal.hide();
+            
+            // Kullanıcının giriş yaptığını göstermek için UI'ı güncelle
+            checkAuthentication();
+            
+            alert('E-posta başarıyla doğrulandı!');
+        } else {
+            alert('Hatalı doğrulama kodu!');
+        }
+    }
+    
+    // Mesajları yükleme
+    function loadMessages() {
+        const email = sessionStorage.getItem('verifiedEmail');
+        
+        // Form verisi oluştur
+        const formData = new FormData();
+        formData.append('email', email);
+
+        fetch('/author/get_user_messages/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`API returned ${res.status}: ${res.statusText}`);
+            }
+            return res.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Response is not valid JSON:", text);
+                    throw new Error("Sunucu geçersiz bir yanıt döndürdü.");
+                }
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                displayMessages(data.messages);
+            } else {
+                alert(data.message || 'Mesajlar yüklenirken bir hata oluştu.');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            console.log('Mesaj verisi yüklenirken bir hata oluştu. Bu, henüz mesaj API\'sinin tam olarak uygulanmadığını gösteriyor.');
+            
+            // Geliştirme aşaması için örnek mesajlar (sonra kaldırılacak)
+            const dummyMessages = [
+                {
+                    id: 1,
+                    title: "Makaleniz hakkında bilgilendirme",
+                    text: "Merhaba, makaleniz inceleme sürecine alınmıştır. Detaylı bilgi için editörle iletişime geçebilirsiniz.",
+                    time: "29.03.2025 14:30"
+                },
+                {
+                    id: 2,
+                    title: "Revizyon talebi",
+                    text: "Sayın yazar, makaleniz için bazı düzeltmeler talep edilmiştir. Lütfen sisteme giriş yaparak revizyonları inceleyiniz.",
+                    time: "27.03.2025 09:15"
+                }
+            ];
+            displayMessages(dummyMessages);
+        });
+    }
+    
+    // Mesajları listele
+    function displayMessages(messages) {
+        const messagesList = document.getElementById('messages-list');
+        const noMessages = document.getElementById('no-messages');
+        
+        if (messages.length === 0) {
+            noMessages.style.display = 'block';
+            return;
+        }
+        
+        noMessages.style.display = 'none';
+        
+        // Mevcut mesajları temizle
+        messagesList.innerHTML = '';
+        
+        // Mesajları listele
+        messages.forEach(message => {
+            const messageCard = document.createElement('div');
+            messageCard.className = 'card message-card';
+            messageCard.dataset.id = message.id;
+            messageCard.dataset.title = message.title;
+            messageCard.dataset.text = message.text;
+            messageCard.dataset.time = message.time;
+            
+            messageCard.innerHTML = `
+                <div class="message-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">${message.title}</h5>
+                    <span class="message-time">${message.time}</span>
+                </div>
+                <div class="message-body">
+                    <p>${message.text.substring(0, 100)}${message.text.length > 100 ? '...' : ''}</p>
+                    <button class="btn btn-sm btn-outline-primary view-message">
+                        <i class="fas fa-eye"></i> Detayları Görüntüle
+                    </button>
+                </div>
+            `;
+            
+            messagesList.appendChild(messageCard);
+        });
+        
+        // Mesaj detayı görüntüleme olayları ekle
+        document.querySelectorAll('.view-message').forEach(button => {
+            button.addEventListener('click', function() {
+                const card = this.closest('.message-card');
+                showMessageDetail(card);
+            });
+        });
+    }
+    
+    // Mesaj detayını göster
+    function showMessageDetail(card) {
+        const id = card.dataset.id;
+        const title = card.dataset.title;
+        const text = card.dataset.text;
+        const time = card.dataset.time;
+        
+        document.getElementById('detailSubject').textContent = title;
+        document.getElementById('detailDate').textContent = time;
+        document.getElementById('detailContent').textContent = text;
+        
+        // Yanıtla butonuna mesaj ID'sini ekle
+        document.getElementById('replyBtn').dataset.id = id;
+        
+        // Detay modalını göster
+        const messageDetailModal = new bootstrap.Modal(document.getElementById('messageDetailModal'));
+        messageDetailModal.show();
+    }
+
+    // Mesaj gönderme
+    function sendMessage() {
+        const email = sessionStorage.getItem('verifiedEmail');
+        const subject = document.getElementById('messageSubject').value;
+        const content = document.getElementById('messageContent').value;
+        
+        if (!subject || !content) {
+            alert('Lütfen konu ve mesaj içeriği girin.');
+            return;
+        }
+        
+        // Form verisi oluştur
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('title', subject);
+        formData.append('text', content);
+
+        fetch('/author/message_to_editor/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`API returned ${res.status}: ${res.statusText}`);
+            }
+            return res.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Response is not valid JSON:", text);
+                    throw new Error("Sunucu geçersiz bir yanıt döndürdü.");
+                }
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Mesajınız başarıyla gönderildi.');
+                document.getElementById('messageSubject').value = '';
+                document.getElementById('messageContent').value = '';
+                
+                // Mesaj modalını kapat
+                const modal = bootstrap.Modal.getInstance(document.getElementById('sendMessageModal'));
+                modal.hide();
+            } else {
+                alert(data.error || 'Mesaj gönderilirken bir hata oluştu.');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Sunucu hatası: ' + err.message);
+        });
+    }
+
+    // Çıkış yapma
+    function logout() {
+        // Session storage'ı temizle
+        sessionStorage.removeItem('verifiedEmail');
+        sessionStorage.removeItem('verification_code');
+        
+        // Kullanıcının çıkış yaptığını göstermek için UI'ı güncelle
+        document.getElementById('verifyEmailBtn').classList.remove('d-none');
+        document.getElementById('userEmailContainer').classList.add('d-none');
+        document.getElementById('logoutBtn').classList.add('d-none');
+        document.getElementById('sendMessageBtn').classList.add('d-none');
+        
+        // Mesaj panelini gizle
+        document.getElementById('not-authenticated').classList.remove('d-none');
+        document.getElementById('authenticated-content').classList.add('d-none');
+        
+        alert('Çıkış yapıldı.');
+    }
+</script>
+
+</body>
+</html>

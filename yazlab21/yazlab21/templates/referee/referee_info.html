@@ -1,0 +1,270 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hakem Bilgileri</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand, .nav-link {
+            color: #fff !important;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+        .card:hover {
+            transform: scale(1.01);
+        }
+        .referee-info-card {
+            border-left: 4px solid #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .referee-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .referee-branch {
+            font-size: 1.1rem;
+            color: #6c757d;
+        }
+        .branch-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        .branch-ai {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .branch-hci {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .branch-data {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .branch-security {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .branch-network {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        .article-item {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s ease-in-out;
+        }
+        .article-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background-color: #f0f8ff;
+        }
+        .article-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #212529;
+            margin-bottom: 8px;
+        }
+        .article-meta {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .btn-evaluate {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-evaluate:hover {
+            background-color: #218838;
+            color: white;
+        }
+        .empty-articles {
+            padding: 30px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-book-open"></i> E - Makale Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home"></i> Ana Sayfa</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'referee:referee_list' %}"><i class="fas fa-users"></i> Hakem Listesi</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-12">
+            <h2><i class="fas fa-user-check text-primary me-2"></i> Hakem Bilgileri</h2>
+            <p class="text-muted">Hakem bilgileri ve atanmış makaleler</p>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card referee-info-card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h3 class="referee-name">{{ referee.referee_name }}</h3>
+                            <p class="referee-branch">
+                                {% if 'Artificial Intelligence' in referee.referee_branch %}
+                                    <span class="branch-badge branch-ai">
+                                        <i class="fas fa-robot me-1"></i> Yapay Zeka
+                                    </span>
+                                {% elif 'Human-Computer Interaction' in referee.referee_branch %}
+                                    <span class="branch-badge branch-hci">
+                                        <i class="fas fa-laptop-code me-1"></i> İnsan-Bilgisayar Etkileşimi
+                                    </span>
+                                {% elif 'Big Data' in referee.referee_branch %}
+                                    <span class="branch-badge branch-data">
+                                        <i class="fas fa-database me-1"></i> Büyük Veri
+                                    </span>
+                                {% elif 'Cyber Security' in referee.referee_branch %}
+                                    <span class="branch-badge branch-security">
+                                        <i class="fas fa-shield-alt me-1"></i> Siber Güvenlik
+                                    </span>
+                                {% elif 'Network' in referee.referee_branch %}
+                                    <span class="branch-badge branch-network">
+                                        <i class="fas fa-network-wired me-1"></i> Ağ ve Dağıtık Sistemler
+                                    </span>
+                                {% else %}
+                                    <span class="branch-badge">
+                                        <i class="fas fa-graduation-cap me-1"></i> {{ referee.referee_branch }}
+                                    </span>
+                                {% endif %}
+                            </p>
+                            <p>{{ referee.referee_branch }}</p>
+                        </div>
+                        <div class="col-md-4 text-md-end pt-2">
+                            <span class="badge bg-primary fs-6 mb-2">
+                                <i class="fas fa-file-alt me-1"></i> {{ assigned_articles|length }} Atanmış Makale
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Atanmış Makaleler</h5>
+                </div>
+                <div class="card-body">
+                    {% if assigned_articles %}
+                        <div class="row">
+                            {% for article in assigned_articles %}
+                                <div class="col-12">
+                                    <div class="article-item">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-9 col-sm-8">
+                                                <div class="article-title">{{ article.article_name }}</div>
+                                                <div class="article-meta">
+                                                    <span class="me-3"><i class="fas fa-hashtag me-1"></i>{{ article.tracking_number }}</span>
+                                                    <span><i class="fas fa-calendar-alt me-1"></i>{{ article.uploaded_at|date:"d.m.Y" }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 col-sm-4 text-end mt-3 mt-md-0">
+                                                <a href="{% url 'referee:referee_assignment' referee.id article.article_drive_id %}" class="btn btn-evaluate">
+                                                    <i class="fas fa-clipboard-check me-1"></i> Makaleyi Değerlendir
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-articles">
+                            <i class="fas fa-folder-open fs-1 mb-3"></i>
+                            <h4>Atanmış Makale Bulunamadı</h4>
+                            <p>Bu hakeme henüz bir makale atanmamış.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="notification-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+            İşlem tamamlandı.
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toastElement = document.getElementById("notification-toast");
+        const toast = new bootstrap.Toast(toastElement);
+        
+        function showNotification(title, message, type) {
+            document.getElementById("toast-title").textContent = title;
+            document.getElementById("toast-message").textContent = message;
+
+            toastElement.className = "toast";
+            if (type === "success") {
+                toastElement.classList.add("bg-success", "text-white");
+            } else if (type === "error") {
+                toastElement.classList.add("bg-danger", "text-white");
+            } else if (type === "warning") {
+                toastElement.classList.add("bg-warning");
+            } else {
+                toastElement.classList.add("bg-info", "text-white");
+            }
+
+            toast.show();
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

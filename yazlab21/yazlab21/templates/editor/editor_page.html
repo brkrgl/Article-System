@@ -1,0 +1,510 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editör Paneli</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand, .nav-link {
+            color: #fff !important;
+        }
+        .nav-link:hover {
+            color: #f8d210 !important;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+        .card:hover {
+            transform: scale(1.02);
+        }
+        .pdf-container {
+            width: 100%;
+            height: 80vh;
+            border: none;
+        }
+        .btn-action {
+            margin: 5px 3px;
+        }
+        .messages-count-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 10px;
+            background-color: #ff4d6d;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-pdf {
+            max-width: 90% !important;
+            width: 90%;
+            height: 90vh;
+        }
+        .modal-pdf .modal-content {
+            height: 100%;
+        }
+        .modal-pdf .modal-body {
+            padding: 0;
+            height: calc(100% - 56px);
+        }
+        
+        .keywords-section {
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .badge {
+            padding: 6px 10px;
+            font-weight: normal;
+            font-size: 0.85em;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-user-tie"></i> Editör Paneli</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" href="{% url 'editor:list_articles' %}"><i class="fas fa-file-alt"></i> Değerlendirlen Makaleler</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'editor:assign_referee' %}"><i class="fas fa-user-check"></i> Hakem Atama</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'editor:log_view' %}"><i class="fas fa-history"></i> Log Kaydı Görüntüle</a></li>
+                <li class="nav-item position-relative">
+                    <a class="nav-link" href="{% url 'editor:author_messages' %}">
+                        <i class="fas fa-envelope"></i> Mesajlar
+                        {% if unread_messages_count > 0 %}
+                        <span class="messages-count-badge">{{ unread_messages_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Çıkış</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <h2 class="mt-4">Yüklenen Makaleler</h2>
+    
+    {% csrf_token %}
+    
+    <div class="row mt-3">
+        {% for article in article_list %}
+        <div class="col-md-6">
+            <div class="card mb-3" data-article-id="{{ article.article_drive_id }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ article.article_name }}</h5>
+                    <p class="card-text">
+                        Yazar: {{ article.article_owner }} | 
+                        Takip No: {{ article.tracking_number }}
+                    </p>
+                    
+                    <div class="d-flex flex-wrap">
+                        
+                        <button class="btn btn-primary btn-action view-article"
+                                data-bs-toggle="modal"
+                                data-bs-target="#articleModal"
+                                data-type="original"
+                                data-driveid="{{ article.article_drive_id }}"
+                                data-title="{{ article.article_name }}">
+                            <i class="fas fa-eye"></i> Görüntüle
+                        </button>
+    
+                        <button class="btn btn-success btn-action download-article"
+                                data-driveid="{{ article.article_drive_id }}">
+                            <i class="fas fa-download"></i> İndir
+                        </button>
+    
+                        <button class="btn btn-warning btn-action anonymize-document"
+                                data-article-id="{{ article.article_drive_id }}">
+                            <i class="fas fa-user-secret"></i> Belgeyi Anonimleştir
+                        </button>
+    
+                        {% if article.blurred_pdf %}
+                        <button class="btn btn-info btn-action view-anonymous"
+                                data-bs-toggle="modal"
+                                data-bs-target="#articleModal"
+                                data-type="anonymous"
+                                data-driveid="{{ article.blurred_pdf.blurred_drive_id }}"
+                                data-title="Anonim - {{ article.article_name }}">
+                            <i class="fas fa-eye-low-vision"></i> Anonim Görüntüle
+                        </button>
+                        
+                        <button class="btn btn-secondary btn-action download-blurred"
+                                data-driveid="{{ article.blurred_pdf.blurred_drive_id }}">
+                            <i class="fas fa-download"></i> İndir (Anonim)
+                        </button>
+                        {% else %}
+                        <button class="btn btn-info btn-action view-anonymous" disabled>
+                            <i class="fas fa-eye-low-vision"></i> Anonim Görüntüle
+                        </button>
+                        {% endif %}
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>Henüz makale yüklenmedi.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal fade" id="articleModal" tabindex="-1" aria-labelledby="articleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-pdf">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="articleModalLabel">Makale Görüntüleyici</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="pdfViewer" class="pdf-container"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="notification-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+            İşlem tamamlandı.
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'static/js/keywords.js' %}"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("DOM yüklendi, butonlar ve anahtar kelimeler etkinleştiriliyor...");
+    
+        document.querySelectorAll('.anonymize-document').forEach(button => {
+            button.addEventListener('click', function() {
+                const articleId = this.getAttribute('data-article-id');
+                if (articleId) {
+                    startAnonymization(articleId, this);
+                } else {
+                    console.warn("Anonimleştirme butonunda article-id bulunamadı");
+                }
+            });
+        });
+    
+        document.querySelectorAll('.download-article, .download-blurred').forEach(button => {
+            button.addEventListener('click', function() {
+                const driveId = this.getAttribute('data-driveid');
+                if (driveId) {
+                    window.location.href = `/editor/download_pdf/${driveId}/`;
+                }
+            });
+        });
+        
+        document.querySelectorAll('.view-article, .view-anonymous').forEach(button => {
+            button.addEventListener('click', function() {
+                const driveId = this.getAttribute('data-driveid');
+                const title = this.getAttribute('data-title');
+                
+                if (driveId) {
+                    const pdfViewer = document.getElementById('pdfViewer');
+                    const modalTitle = document.getElementById('articleModalLabel');
+                    
+                    if (pdfViewer && modalTitle) {
+                        pdfViewer.src = `/editor/view_article/${driveId}/`;
+                        modalTitle.textContent = title || 'Makale Görüntüleyici';
+                    }
+                }
+            });
+        });
+
+        setupKeywordSections();
+    });
+    
+    function setupKeywordSections() {
+        const articleCards = document.querySelectorAll('.card[data-article-id]');
+        
+        articleCards.forEach(card => {
+            const articleId = card.getAttribute('data-article-id');
+            const cardBody = card.querySelector('.card-body');
+            
+            if (cardBody && articleId) {
+                const keywordsSection = document.createElement('div');
+                keywordsSection.className = 'keywords-section mt-3';
+                keywordsSection.id = `keywords-section-${articleId}`;
+                keywordsSection.innerHTML = `
+                    <h6><i class="fas fa-tags"></i> Anahtar Kelimeler</h6>
+                    <div id="keywords-content-${articleId}" class="keywords-content">
+                        <div class="text-center py-2">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="ms-2">Anahtar Kelimeler Yükleniyor...</span>
+                        </div>
+                    </div>
+                `;
+                
+                cardBody.appendChild(keywordsSection);
+                
+                fetchKeywordsForArticle(articleId);
+            }
+        });
+    }
+
+    function fetchKeywordsForArticle(articleId) {
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('/editor/get_article_keywords/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                article_id: articleId
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Sunucu hatası: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (data.status === 'completed') {
+                    updateKeywordSection(articleId, data.keywords || []);
+                } else if (data.status === 'processing') {
+                    setTimeout(() => fetchKeywordsForArticle(articleId), 5000);
+                } else if (data.status === 'failed') {
+                    showKeywordError(articleId, data.error_message || "Anahtar kelime çıkarma işlemi başarısız oldu");
+                }
+            } else {
+                showKeywordError(articleId, data.message || "Anahtar kelime getirme isteği başarısız oldu");
+            }
+        })
+        .catch(error => {
+            console.error("Anahtar kelime getirme hatası:", error);
+            const retryCount = parseInt(document.getElementById(`keywords-content-${articleId}`).getAttribute('data-retry-count') || '0');
+            if (retryCount < 3) {
+                document.getElementById(`keywords-content-${articleId}`).setAttribute('data-retry-count', (retryCount + 1).toString());
+                setTimeout(() => fetchKeywordsForArticle(articleId), 5000);
+            } else {
+                showKeywordError(articleId, "Bağlantı hatası: Anahtar kelimeler yüklenemedi.");
+            }
+        });
+    }
+
+    function updateKeywordSection(articleId, keywords) {
+        const keywordsContent = document.getElementById(`keywords-content-${articleId}`);
+        if (!keywordsContent) return;
+        
+        if (keywords && keywords.length > 0) {
+            let keywordsHtml = '';
+            
+            keywords.forEach(keyword => {
+                keywordsHtml += `<span class="badge bg-primary">${keyword}</span> `;
+            });
+            
+            keywordsContent.innerHTML = keywordsHtml;
+        } else {
+            keywordsContent.innerHTML = `
+                <div class="alert alert-warning py-1 px-2 small">
+                    <i class="fas fa-exclamation-circle"></i> 
+                    Anahtar kelime bulunamadı.
+                </div>
+            `;
+        }
+    }
+
+    function showKeywordError(articleId, errorMessage) {
+        const keywordsContent = document.getElementById(`keywords-content-${articleId}`);
+        
+        if (keywordsContent) {
+            keywordsContent.innerHTML = `
+                <div class="alert alert-danger py-1 px-2 small">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    ${errorMessage}
+                </div>
+                <button class="btn btn-sm btn-outline-primary retry-keywords" 
+                        onclick="fetchKeywordsForArticle('${articleId}')">
+                    <i class="fas fa-sync-alt"></i> Tekrar Dene
+                </button>
+            `;
+        }
+    }
+    
+    function startAnonymization(articleId, button) {
+        const originalButtonContent = button.innerHTML;
+        button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> İşleniyor...`;
+        button.disabled = true;
+        
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('/editor/hide_personal_info/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                article_id: articleId
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Sunucu hatası: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Anonimleştirme yanıtı:", data);
+            
+            if (data.success) {
+                if (data.status === 'completed') {
+                    showToast("Başarılı", "Belge başarıyla anonimleştirildi", "success");
+                    enableAnonymousButtons(articleId, data.blurred_file_id);
+                    button.innerHTML = `<i class="fas fa-check"></i> Anonimleştirildi`;
+                    button.disabled = true;
+                } else {
+                    button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> İşleniyor...`;
+                    button.setAttribute('data-processing', 'true');
+                    
+                    checkBlurStatus(articleId, button);
+                }
+            } else {
+                button.innerHTML = originalButtonContent;
+                button.disabled = false;
+                showToast("Hata", data.message || "Anonimleştirme işlemi başlatılamadı", "danger");
+            }
+        })
+        .catch(error => {
+            console.error("Anonimleştirme hatası:", error);
+            button.innerHTML = originalButtonContent;
+            button.disabled = false;
+            showToast("Hata", "Anonimleştirme işlemi sırasında bir hata oluştu", "danger");
+        });
+    }
+    
+    function checkBlurStatus(articleId, button) {
+        if (!button.hasAttribute('data-processing')) {
+            return;
+        }
+        
+        fetch(`/editor/get_blurred_status/${articleId}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Sunucu hatası: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (data.status === 'completed') {
+                    button.removeAttribute('data-processing');
+                    button.innerHTML = `<i class="fas fa-check"></i> Anonimleştirildi`;
+                    button.disabled = true;
+                    
+                    enableAnonymousButtons(articleId, data.blurred_file_id);
+                    
+                    showToast("Başarılı", "Belge başarıyla anonimleştirildi", "success");
+                } else {
+                    setTimeout(() => {
+                        checkBlurStatus(articleId, button);
+                    }, 3000);
+                }
+            } else {
+                button.removeAttribute('data-processing');
+                button.innerHTML = `<i class="fas fa-user-secret"></i> Belgeyi Anonimleştir`;
+                button.disabled = false;
+                showToast("Hata", data.message || "Durum kontrolü sırasında bir hata oluştu", "danger");
+            }
+        })
+        .catch(error => {
+            console.error("Durum kontrolü hatası:", error);
+            setTimeout(() => {
+                checkBlurStatus(articleId, button);
+            }, 3000);
+        });
+    }
+    
+    function enableAnonymousButtons(articleId, blurredFileId) {
+        const card = document.querySelector(`.card[data-article-id="${articleId}"]`);
+        if (!card) return;
+        
+        const viewButton = card.querySelector('.view-anonymous');
+        if (viewButton) {
+            viewButton.disabled = false;
+            viewButton.setAttribute('data-driveid', blurredFileId);
+        }
+        
+        const downloadButton = card.querySelector('.download-blurred');
+        if (downloadButton) {
+            downloadButton.disabled = false;
+            downloadButton.setAttribute('data-driveid', blurredFileId);
+        } else {
+            const buttonsDiv = card.querySelector('.d-flex.flex-wrap');
+            if (buttonsDiv) {
+                const newDownloadButton = document.createElement('button');
+                newDownloadButton.className = 'btn btn-secondary btn-action download-blurred';
+                newDownloadButton.setAttribute('data-driveid', blurredFileId);
+                newDownloadButton.innerHTML = '<i class="fas fa-download"></i> İndir (Anonim)';
+                buttonsDiv.appendChild(newDownloadButton);
+                
+                newDownloadButton.addEventListener('click', function() {
+                    window.location.href = `/editor/download_pdf/${blurredFileId}/`;
+                });
+            }
+        }
+    }
+    
+    function showToast(title, message, type) {
+        const toastEl = document.getElementById('notification-toast');
+        const toastTitle = document.getElementById('toast-title');
+        const toastMessage = document.getElementById('toast-message');
+        
+        if (toastEl && toastTitle && toastMessage) {
+            toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'text-white');
+            
+            if (type === 'success') {
+                toastEl.classList.add('bg-success', 'text-white');
+            } else if (type === 'danger') {
+                toastEl.classList.add('bg-danger', 'text-white');
+            } else if (type === 'warning') {
+                toastEl.classList.add('bg-warning');
+            }
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    }
+</script>
+
+</body>
+</html>
